@@ -2,25 +2,25 @@
     -Myvar:
     Coding conventions:
     1. Please add the thing your using in an include, with a comment
-        ->
-            //malloc, free
-            #include <stdlib.h>
+            ->
+                //malloc, free
+                #include <stdlib.h>
 
     2. Use Comment with one empty one above an one empty below
-        -> //
-           // Some Comment
-           //
+            -> //
+            // Some Comment
+            //
 
     3. Use Sections to make code navagation easyer
-        -> //
-           // [Helpers]
-           //
-           inline double rad_to_deg(double rad) { ... }
-           
+            -> //
+            // [Helpers]
+            //
+            inline double rad_to_deg(double rad) { ... }
+
     4. use @ tags to mark things: (ensure tag index is upto date)
-        -> // @Hack !!! this code is hacky
-           // @Cleanup Code is messy the names need to be updated
-           // @Speed !! malloc a big block insted of meany small malocs for cacheing
+            -> // @Hack !!! this code is hacky
+            // @Cleanup Code is messy the names need to be updated
+            // @Speed !! malloc a big block insted of meany small malocs for cacheing
  */
 
 //
@@ -28,10 +28,20 @@
 //
 
 /*
- * @Speed
- * @Cleanup
- * @Hack
+    * @Speed
+    * @Cleanup
+    * @Hack
  */
+
+
+//
+// Todo/Ideas
+//
+
+/*
+    * Orbital Mechanics
+    * Stellar classification
+*/
 
 //malloc, free
 #include <stdlib.h>
@@ -47,11 +57,7 @@
 
 #include "celestial.h"
 
-/*
-    TODO:
-    * Orbital Mechanics
-    * Stellar classification
-*/
+
 
 //
 // [Implmentation]
