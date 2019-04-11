@@ -1,5 +1,5 @@
 
-
+.vscode
 
 # Created by https://www.gitignore.io/api/clion
 # Edit at https://www.gitignore.io/?templates=clion
@@ -143,3 +143,5 @@ Module.symvers
 Mkfile.old
 dkms.conf
 celestial
+.vscode/ipch/97f4b70040689b14/mmap_address.bin
+.vscode/ipch/97f4b70040689b14/celestial.ipch
