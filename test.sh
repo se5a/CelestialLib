@@ -3,10 +3,10 @@
 echo "Starting"
 
 #compile
-if gcc celestial.c -o celestial -DTEST; then
+if gcc celestial.c -o celestial -DTEST -lm; then
 	echo "Success!";
 	#clear screen and run
-	#clear
+	clear
 	./celestial
 else 
 	echo "Failure"; 
