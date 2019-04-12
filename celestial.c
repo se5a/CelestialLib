@@ -276,6 +276,15 @@ struct orbital_elements_t
     double parent_mass_kg;
 };
 
+struct state_vectors_t
+{
+    double parentMass;
+    double myMass;
+    vector velocity;
+    vector position;
+    time_t time;
+};
+
 // @Speed ! mallocing a big struct like this piecemeal is slow, it would be way faster to use an Array for Struct, with block mallocs
 orbital_elements orbital_elements_create()
 {
@@ -283,6 +292,16 @@ orbital_elements orbital_elements_create()
 }
 
 void orbital_elements_free(orbital_elements elem) { free(elem); }
+
+state_vectors state_vectors_create()
+{
+    return malloc(sizeof(struct state_vectors_t));
+}
+
+void state_vectors_free(state_vectors vecs)
+{
+    free(vecs);
+}
 
 void orbital_elements_init_from_major_planet(
     orbital_elements elem,
@@ -300,6 +319,18 @@ void orbital_elements_init_from_major_planet(
 
 void orbital_elements_calculate_extended_parameters(orbital_elements elem)
 {
+}
+
+void orbital_elements_init_from_vector(
+    orbital_elements elem,
+    state_vectors state_vecs)
+{
+
+}
+
+state_vectors orbital_elements_get_state_vectors(orbital_elements elem)
+{
+    
 }
 //
 // Testing
