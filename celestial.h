@@ -77,13 +77,19 @@ void orbital_elements_init_from_major_planet(
     double meanLongitude,
     time_t epoch);
 
+
+//fill update the state of things like the orbital_period for eg
 void orbital_elements_calculate_extended_parameters(orbital_elements elem);
 
+//convert this orbit to a state vector
+state_vectors orbital_elements_get_state_vectors(orbital_elements elem);
+
+//convert the state vector back into kepler elements
 void orbital_elements_init_from_vector(
     orbital_elements elem,
     state_vectors state_vecs);
 
-state_vectors orbital_elements_get_state_vectors(orbital_elements elem);
+
 
 
 #endif //CELESTIAL_C_CELESTIAL_H
