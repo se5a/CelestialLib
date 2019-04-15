@@ -17,24 +17,24 @@
                 #include <stdlib.h>
 
     2. Use Comment with one empty one above an one empty below
-            -> 
+            ->
                 //
                 // Some Comment
                 //
 
     3. Use Sections to make code navagation easyer
-            -> 
+            ->
                 //
                 // [Helpers]
                 //
                 inline double rad_to_deg(double rad) { ... }
 
     4. use @ tags to mark things: (ensure tag index is upto date)
-            -> 
+            ->
                 // @Hack !!! this code is hacky
                 // @Cleanup Code is messy the names need to be updated
                 // @Speed !! malloc a big block insted of meany small malocs for cacheing
-  
+
     5. prefix all procedures with a structs name if its related to that struct
             -> void orbital_elements_init(orbital_elements);
                 insted of just init
@@ -260,15 +260,15 @@ void vector_print(vector vec)
 //
 struct orbital_elements_t
 {
-    double semi_major_axis_km;
-    double eccentricity;
-    double inclination_km;
+    double semi_major_axis_km;          //aka a
+    double eccentricity;                //aka e
+    double inclination_rad;
     double longitude_of_ascending_node_rad;
     double argument_of_periapsis_rad;
-    double mean_anomaly_rad;
-    time_t epoch;
-    double gravitational_parameter;
-    time_t orbital_period;
+    double mean_anomaly_rad;            //aka M0 (at epoch)
+    double epoch;                       //seconds past periapsis
+    double gravitational_parameter_km;  //km^3 s^-2 (si units are m^3 s^-2
+    double orbital_period_seconds;
     long mean_motion_rad;
     double apoapsis_km;
     double periapsis_km;
@@ -282,7 +282,7 @@ struct state_vectors_t
     double myMass;
     vector velocity;
     vector position;
-    time_t time;
+    double secondsPastEpochOfLastCalc;
 };
 
 // @Speed ! mallocing a big struct like this piecemeal is slow, it would be way faster to use an Array for Struct, with block mallocs
@@ -313,12 +313,20 @@ void orbital_elements_init_from_major_planet(
     double longitudeOfAscendingNode,
     double longitudeOfPeriapsis,
     double meanLongitude,
-    time_t epoch)
+    double epoch)
 {
 }
 
-void orbital_elements_calculate_extended_parameters(orbital_elements elem)
+void orbital_elements_calculate_extended_parameters(orbital_elements *elem)
 {
+    elem.gravitational_parameter_km = 6.67408e-20 (_parentMass + _myMass); //km^3 s^-2
+    elem.mean_motion_rad = sqrt(elem.gravitational_parameter_km / pow(elem.semi_major_axis_km, 3));
+
+    elem.orbital_period_seconds = = 2 * M_PI * sqrt(pow(elem.semi_major_axis_km, 3) / (elem.gravitational_parameter_km));
+
+    elem.apoapsis_km = (1 + elem.eccentricity) * elem.semi_major_axis_km;
+    elem.periapsis_km = (1 - elem.eccentricity) * elem.semi_major_axis_km;
+
 }
 
 void orbital_elements_init_from_vector(
@@ -328,9 +336,76 @@ void orbital_elements_init_from_vector(
 
 }
 
-state_vectors orbital_elements_get_state_vectors(orbital_elements elem)
+state_vectors orbital_elements_get_state_vectors(orbital_elements elem, state_vectors *state, double secondsSinceLastCalc)
 {
-    
+    double trueAnomaly_rad;
+
+    double secondsFromEpoch = state.secondsPastEpochOfLastCalc + secondsSinceLastCalc;
+
+    //don't let secondsFromEpoch get too big
+    while(secondsFromEpoch > elem.orbital_period_seconds)
+    {
+        secondsFromEpoch -= elem.orbital_period_seconds;
+    }
+    state.secondsPastEpochOfLastCalc = secondsFromEpoch;
+
+    //calculate current mean anomaly:
+    double currentMeanAnomaly = elem.mean_anomaly_rad;
+    // Add nT
+    currentMeanAnomaly += elem.meanMotion_rad * secondsFromEpoch;
+    // Large nT can cause meanAnomaly to go past 2*Pi. Roll it down. It shouldn't, because timeSinceEpoch should be tapered above, but it has.
+    currentMeanAnomaly = currentMeanAnomaly % (Math.PI * 2);
+
+    //calculate EccentricAnomaly:
+    double eccentricAnomaly;
+    short numItterations = 100;
+    double[] e;
+    double epsilon = 1E-12; //amount of error we're happy with
+    short i = 0;
+    if(elem.eccentricity > 0.8)
+    {
+        e[i] = M_PI;
+    }
+    else
+    {
+        e[i] = currentMeanAnomaly;
+    }
+
+    do
+    {
+        e[i + 1] = e[i] - (e[i] - elem.eccentricity * sin(e[i]) - currentMeanAnomaly) / (1 - elem.eccentricity * cos(e[i]));
+        i++;
+    }
+    while(abs(e[i] - e[i - 1]) > epsilon && i + 1 < numIterations);
+    if(i + 1 >= numIterations)
+    {
+        eccentricAnomaly = 0; //failed to converge on answer;
+    }
+    else
+    {
+        eccentricAnomaly = e[i-1];
+    }
+
+    double x = cos(eccentricAnomaly) - elem.eccentricity;
+    double y = srt(1 - elem.eccentricity * elem.eccentricity) * sin(eccentricAnomaly);
+
+    trueAnomaly_rad = atan2(y,x)
+
+
+
+    double radius_km = elem.semi_major_axis_km * (1 - elem.eccentricity * elem.eccentricity) / (1 + elem.eccentricity * cos(trueAnomaly_rad));
+    double angleFromAN = trueAnomaly + elem.argument_of_periapsis_rad;
+    double loAN = elem.longitude_of_ascending_node_rad;
+
+    state.position.x = radius_km * (cos(lofAN) * cos(angleFromAN) - sin(lofAN) * sin(angleFromAN) * cos(elem.inclination_rad));
+    state.position.y = radius_km * (sin(lofAN) * cos(angleFromAN) + cos(lofAN) * sin(angleFromAN) * cos(elem.inclination_rad));
+    state.position.z = radius_km * (sin(elem.inclination_rad) * sin(angleFromAN));
+
+    double positionLen = sqrt(state.position.x * state.position.x + state.position.y * state.position.y + state.position.z * state.position.z)
+    double speed = sqrt(elem.gravitational_parameter_km * (2 / positionLen - 1 / elem.semi_major_axis_km));
+    double linierEccentricity = elem.semiMajorAxis * elem.eccentricity;
+
+
 }
 //
 // Testing
