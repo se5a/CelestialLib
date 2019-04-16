@@ -304,7 +304,7 @@ void state_vectors_free(state_vectors vecs)
 }
 
 void orbital_elements_init_from_major_planet(
-    orbital_elements elem,
+    struct orbital_elements_t elem,
     double parentMass,
     double myMass,
     double semiMajorAxis,
@@ -317,15 +317,15 @@ void orbital_elements_init_from_major_planet(
 {
 }
 
-void orbital_elements_calculate_extended_parameters(orbital_elements *elem)
+void orbital_elements_calculate_extended_parameters(struct orbital_elements_t *elem)
 {
-    elem.gravitational_parameter_km = 6.67408e-20 (_parentMass + _myMass); //km^3 s^-2
-    elem.mean_motion_rad = sqrt(elem.gravitational_parameter_km / pow(elem.semi_major_axis_km, 3));
+    elem->gravitational_parameter_km = 6.67408e-20 * (elem->parent_mass_kg + elem->mass_kg); //km^3 s^-2
+    elem->mean_motion_rad = sqrt(elem->gravitational_parameter_km / pow(elem->semi_major_axis_km, 3));
 
-    elem.orbital_period_seconds = = 2 * M_PI * sqrt(pow(elem.semi_major_axis_km, 3) / (elem.gravitational_parameter_km));
+    elem->orbital_period_seconds = 2 * M_PI * sqrt(pow(elem->semi_major_axis_km, 3) / (elem->gravitational_parameter_km));
 
-    elem.apoapsis_km = (1 + elem.eccentricity) * elem.semi_major_axis_km;
-    elem.periapsis_km = (1 - elem.eccentricity) * elem.semi_major_axis_km;
+    elem->apoapsis_km = (1 + elem->eccentricity) * elem->semi_major_axis_km;
+    elem->periapsis_km = (1 - elem->eccentricity) * elem->semi_major_axis_km;
 
 }
 
@@ -336,30 +336,30 @@ void orbital_elements_init_from_vector(
 
 }
 
-state_vectors orbital_elements_get_state_vectors(orbital_elements elem, state_vectors *state, double secondsSinceLastCalc)
+state_vectors orbital_elements_get_state_vectors(struct orbital_elements_t elem, struct state_vectors_t *state, double secondsSinceLastCalc)
 {
     double trueAnomaly_rad;
 
-    double secondsFromEpoch = state.secondsPastEpochOfLastCalc + secondsSinceLastCalc;
+    double secondsFromEpoch = state->secondsPastEpochOfLastCalc + secondsSinceLastCalc;
 
     //don't let secondsFromEpoch get too big
     while(secondsFromEpoch > elem.orbital_period_seconds)
     {
         secondsFromEpoch -= elem.orbital_period_seconds;
     }
-    state.secondsPastEpochOfLastCalc = secondsFromEpoch;
+    state->secondsPastEpochOfLastCalc = secondsFromEpoch;
 
     //calculate current mean anomaly:
     double currentMeanAnomaly = elem.mean_anomaly_rad;
     // Add nT
-    currentMeanAnomaly += elem.meanMotion_rad * secondsFromEpoch;
+    currentMeanAnomaly += elem.mean_motion_rad * secondsFromEpoch;
     // Large nT can cause meanAnomaly to go past 2*Pi. Roll it down. It shouldn't, because timeSinceEpoch should be tapered above, but it has.
-    currentMeanAnomaly = currentMeanAnomaly % (Math.PI * 2);
+    currentMeanAnomaly = fmod(currentMeanAnomaly, (M_PI * 2));
 
     //calculate EccentricAnomaly:
     double eccentricAnomaly;
-    short numItterations = 100;
-    double[] e;
+    short numIterations = 100;
+    double e [numIterations];
     double epsilon = 1E-12; //amount of error we're happy with
     short i = 0;
     if(elem.eccentricity > 0.8)
@@ -387,23 +387,23 @@ state_vectors orbital_elements_get_state_vectors(orbital_elements elem, state_ve
     }
 
     double x = cos(eccentricAnomaly) - elem.eccentricity;
-    double y = srt(1 - elem.eccentricity * elem.eccentricity) * sin(eccentricAnomaly);
+    double y = sqrt(1 - elem.eccentricity * elem.eccentricity) * sin(eccentricAnomaly);
 
-    trueAnomaly_rad = atan2(y,x)
+    trueAnomaly_rad = atan2(y,x);
 
 
 
     double radius_km = elem.semi_major_axis_km * (1 - elem.eccentricity * elem.eccentricity) / (1 + elem.eccentricity * cos(trueAnomaly_rad));
-    double angleFromAN = trueAnomaly + elem.argument_of_periapsis_rad;
-    double loAN = elem.longitude_of_ascending_node_rad;
+    double angleFromAN = trueAnomaly_rad + elem.argument_of_periapsis_rad;
+    double lofAN = elem.longitude_of_ascending_node_rad;
 
-    state.position.x = radius_km * (cos(lofAN) * cos(angleFromAN) - sin(lofAN) * sin(angleFromAN) * cos(elem.inclination_rad));
-    state.position.y = radius_km * (sin(lofAN) * cos(angleFromAN) + cos(lofAN) * sin(angleFromAN) * cos(elem.inclination_rad));
-    state.position.z = radius_km * (sin(elem.inclination_rad) * sin(angleFromAN));
+    state->position->x = radius_km * (cos(lofAN) * cos(angleFromAN) - sin(lofAN) * sin(angleFromAN) * cos(elem.inclination_rad));
+    state->position->y = radius_km * (sin(lofAN) * cos(angleFromAN) + cos(lofAN) * sin(angleFromAN) * cos(elem.inclination_rad));
+    state->position->z = radius_km * (sin(elem.inclination_rad) * sin(angleFromAN));
 
-    double positionLen = sqrt(state.position.x * state.position.x + state.position.y * state.position.y + state.position.z * state.position.z)
+    double positionLen = sqrt(state->position->x * state->position->x + state->position->y * state->position->y + state->position->z * state->position->z);
     double speed = sqrt(elem.gravitational_parameter_km * (2 / positionLen - 1 / elem.semi_major_axis_km));
-    double linierEccentricity = elem.semiMajorAxis * elem.eccentricity;
+    double linierEccentricity = elem.semi_major_axis_km * elem.eccentricity;
 
 
 }

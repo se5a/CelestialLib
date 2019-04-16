@@ -66,23 +66,23 @@ void state_vectors_free(state_vectors vecs);
 
 //so things can be pulled in from a planet
 void orbital_elements_init_from_major_planet(
-    orbital_elements,
-    double parentMass,
-    double myMass,
-    double semiMajorAxis,
-    double eccentricity,
-    double inclination,
-    double longitudeOfAscendingNode,
-    double longitudeOfPeriapsis,
-    double meanLongitude,
-    time_t epoch);
+    struct orbital_elements_t *,
+    double ,
+    double ,
+    double ,
+    double ,
+    double ,
+    double ,
+    double ,
+    double ,
+    double );
 
 
 //fill update the state of things like the orbital_period for eg
-void orbital_elements_calculate_extended_parameters(orbital_elements elem);
+void orbital_elements_calculate_extended_parameters(struct orbital_elements_t elem);
 
 //convert this orbit to a state vector
-state_vectors orbital_elements_get_state_vectors(orbital_elements elem);
+state_vectors orbital_elements_get_state_vectors(struct orbital_elements_t, struct state_vectors_t *, double);
 
 //convert the state vector back into kepler elements
 void orbital_elements_init_from_vector(
