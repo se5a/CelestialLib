@@ -79,15 +79,15 @@ void orbital_elements_init_from_major_planet(
 
 
 //fill update the state of things like the orbital_period for eg
-void orbital_elements_calculate_extended_parameters(struct orbital_elements_t elem);
+void orbital_elements_calculate_extended_parameters(struct orbital_elements_t *);
 
 //convert this orbit to a state vector
 state_vectors orbital_elements_get_state_vectors(struct orbital_elements_t, struct state_vectors_t *, double);
 
 //convert the state vector back into kepler elements
 void orbital_elements_init_from_vector(
-    orbital_elements elem,
-    state_vectors state_vecs);
+    struct orbital_elements_t *,
+    struct state_vectors_t);
 
 
 

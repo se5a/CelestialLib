@@ -306,7 +306,7 @@ void state_vectors_free(state_vectors vecs)
 }
 
 void orbital_elements_init_from_major_planet(
-    struct orbital_elements_t elem,
+    struct orbital_elements_t *elem,
     double parentMass,
     double myMass,
     double semiMajorAxis,
@@ -332,8 +332,8 @@ void orbital_elements_calculate_extended_parameters(struct orbital_elements_t *e
 }
 
 void orbital_elements_init_from_vector(
-    orbital_elements *elem,
-    state_vectors state_vecs)
+    struct orbital_elements_t *elem,
+    struct state_vectors_t state_vecs)
 {
     double a;   //SemiMajorAxis
     double b;   //SemiMinorAxis
@@ -347,6 +347,8 @@ void orbital_elements_init_from_vector(
     vector vel = state_vecs.velocity;
     vector pos = state_vecs.position;
     double p;   //
+
+
     //calculate angularVelocity and NodeVector
     vector angularVelocity = vector_cross(pos, vel);
     vector zed = vector_init(0, 0, 1);
@@ -378,11 +380,11 @@ void orbital_elements_init_from_vector(
     double linierEccentricity = e * a;
 
     //inclination
-    i = acos(angularVelocity.Z / vector_length(angularVelocity));
+    i = acos(angularVelocity->z / vector_length(angularVelocity));
     if(isnan(i))
         i = 0;
     //LonditudeOfAccendingNode
-    double loANLen = nodeVector.x / vector_length(nodeVector);
+    double loANLen = nodeVector->x / vector_length(nodeVector);
     if(isnan(loANLen))
         loANLen = 0;
     else
@@ -396,26 +398,26 @@ void orbital_elements_init_from_vector(
     //calculate argumentOfPeriapsis
     if(loAN == 0)
     {
-        aoP = atan2(eccentricityVector.y, eccentricityVector.x);
-        if(vector_cross(pos, vel).z < 0) //anticlockwise Orbit
+        aoP = atan2(eccentricityVector->y, eccentricityVector->x);
+        if(vector_cross(pos, vel)->z < 0) //anticlockwise Orbit
             aoP = M_PI * 2 - aoP;
     }
     else
     {
         double aopLen = vector_dot(nodeVector, eccentricityVector);
         aopLen = aopLen / (vector_length(nodeVector) * e);
-        aopLen = fmin(aopLen, 1)
-        aopLen = fmax(aoplen, -1)
+        aopLen = fmin(aopLen, 1);
+        aopLen = fmax(aopLen, -1);
         aoP = acos(aopLen);
-        if(eccentricityVector.z < 0) //anticlockwiseOrbit
+        if(eccentricityVector->z < 0) //anticlockwiseOrbit
             aoP = M_PI * 2 - aoP;
     }
 
     //calculate MeanAnomaly:
     double eccAng = vector_dot(eccentricityVector, pos);
     eccAng = a / eccAng;
-    eccAng = fmin(eccAng, 1)
-    eccAng = fmax(eccAng, -1)
+    eccAng = fmin(eccAng, 1);
+    eccAng = fmax(eccAng, -1);
     E = acos(eccAng);
     M0 = E - e * sin(E);
 
