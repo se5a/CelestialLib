@@ -109,6 +109,8 @@ static inline double sqr(double n)
     return n * n;
 }
 
+const double GravConst_m_kg_s = 6.67408E-11;
+const double GravConst_km_kg_s = 6.67408E-20;
 //
 // [Math]
 //
@@ -319,7 +321,7 @@ void orbital_elements_init_from_major_planet(
 
 void orbital_elements_calculate_extended_parameters(struct orbital_elements_t *elem)
 {
-    elem->gravitational_parameter_km = 6.67408e-20 * (elem->parent_mass_kg + elem->mass_kg); //km^3 s^-2
+    elem->gravitational_parameter_km = GravConst_km_kg_s * (elem->parent_mass_kg + elem->mass_kg); //km^3 s^-2
     elem->mean_motion_rad = sqrt(elem->gravitational_parameter_km / pow(elem->semi_major_axis_km, 3));
 
     elem->orbital_period_seconds = 2 * M_PI * sqrt(pow(elem->semi_major_axis_km, 3) / (elem->gravitational_parameter_km));
@@ -330,10 +332,102 @@ void orbital_elements_calculate_extended_parameters(struct orbital_elements_t *e
 }
 
 void orbital_elements_init_from_vector(
-    orbital_elements elem,
+    orbital_elements *elem,
     state_vectors state_vecs)
 {
+    double a;   //SemiMajorAxis
+    double b;   //SemiMinorAxis
+    double e;   //Eccentricity
+    double i;   //inclination
+    double loAN;//longditudeOfAccendingNode omega
+    double aoP; //Argument of periapsis Omega
+    double M0;  //MeanAnomaly at Epoch
+    double E;   //EccentricAnomaly
+    double sgp =  GravConst_m_kg_s * state_vecs.parentMass * state_vecs.parentMass; //standardGravParameter
+    vector vel = state_vecs.velocity;
+    vector pos = state_vecs.position;
+    double p;   //
+    //calculate angularVelocity and NodeVector
+    vector angularVelocity = vector_cross(pos, vel);
+    vector zed = vector_init(0, 0, 1);
+    vector nodeVector = vector_cross(zed, angularVelocity);
 
+    //calculate eccentricity
+    vector eccentricityVector = vector_cross(vel, angularVelocity) / sgp;
+    eccentricityVector = eccentricityVector - (state_vecs.position / vector_length(state_vecs.position));
+    e = vector_length(eccentricityVector);
+
+    double specificOrbitalEnergy = pow(vector_length(vel),2) * vector_length(vel) * 0.5 - sgp / vector_length(pos);
+
+    if (abs(e) > 1) //hypobola
+    {
+        a = -(-sgp / (2 * specificOrbitalEnergy)); //in this case the sma is negitive
+        p = a * (1 - pow(e, 2));
+    }
+    else if (abs(e) < 1) //ellipse
+    {
+        a = -sgp / (2 * specificOrbitalEnergy);
+        p = a * (1 - e * pow(e, 2));
+    }
+    else //parabola consider pushing this to just over parabola and using a hyperbola instead
+    {
+        p = pow(vector_length(angularVelocity), 2) / sgp;
+        a = INFINITY;
+    }
+    b = a * sqrt(1 - pow(e, 2));
+    double linierEccentricity = e * a;
+
+    //inclination
+    i = acos(angularVelocity.Z / vector_length(angularVelocity));
+    if(isnan(i))
+        i = 0;
+    //LonditudeOfAccendingNode
+    double loANLen = nodeVector.x / vector_length(nodeVector);
+    if(isnan(loANLen))
+        loANLen = 0;
+    else
+    {
+        loANLen = fmin(loANLen, -1);
+        loANLen = fmax(loANLen, 1);
+    }
+    if(loANLen != 0)
+        loAN = acos(loANLen);
+
+    //calculate argumentOfPeriapsis
+    if(loAN == 0)
+    {
+        aoP = atan2(eccentricityVector.y, eccentricityVector.x);
+        if(vector_cross(pos, vel).z < 0) //anticlockwise Orbit
+            aoP = M_PI * 2 - aoP;
+    }
+    else
+    {
+        double aopLen = vector_dot(nodeVector, eccentricityVector);
+        aopLen = aopLen / (vector_length(nodeVector) * e);
+        aopLen = fmin(aopLen, 1)
+        aopLen = fmax(aoplen, -1)
+        aoP = acos(aopLen);
+        if(eccentricityVector.z < 0) //anticlockwiseOrbit
+            aoP = M_PI * 2 - aoP;
+    }
+
+    //calculate MeanAnomaly:
+    double eccAng = vector_dot(eccentricityVector, pos);
+    eccAng = a / eccAng;
+    eccAng = fmin(eccAng, 1)
+    eccAng = fmax(eccAng, -1)
+    E = acos(eccAng);
+    M0 = E - e * sin(E);
+
+    elem->semi_major_axis_km = a;
+    elem->eccentricity = e;
+    elem->apoapsis_km = (1 + e) * a;
+    elem->periapsis_km  = (1 - e) * a;
+    elem->longitude_of_ascending_node_rad = loAN;
+    elem->argument_of_periapsis_rad = aoP;
+    elem->inclination_rad = i;
+    elem->mean_anomaly_rad = M0;
+    elem->epoch = pow((pow(a, 3) / sgp), 0.5) * M0;
 }
 
 state_vectors orbital_elements_get_state_vectors(struct orbital_elements_t elem, struct state_vectors_t *state, double secondsSinceLastCalc)
