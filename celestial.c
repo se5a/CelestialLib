@@ -219,13 +219,24 @@ vector vector_add(vector a, vector b)
     return vec;
 }
 
-vector vector_sub(vector a, vector b)
+vector vector_add_d(vector a, double b)
 {
     vector vec = vector_create();
 
-    vec->x = a->x - b->x;
-    vec->y = a->y - b->y;
-    vec->z = a->z - b->z;
+    vec->x = a->x + b;
+    vec->y = a->y + b;
+    vec->z = a->z + b;
+
+    return vec;
+}
+
+vector vector_sub_d(vector a, double b)
+{
+    vector vec = vector_create();
+
+    vec->x = a->x - b;
+    vec->y = a->y - b;
+    vec->z = a->z - b;
 
     return vec;
 }
@@ -241,6 +252,16 @@ vector vector_div(vector a, vector b)
     return vec;
 }
 
+vector vector_div_d(vector a, double b)
+{
+    vector vec = vector_create();
+    vec->x = a->x / b;
+    vec->y = a->y / b;
+    vec->z = a->z / b;
+
+    return vec;
+}
+
 vector vector_mul(vector a, vector b)
 {
     vector vec = vector_create();
@@ -248,6 +269,17 @@ vector vector_mul(vector a, vector b)
     vec->x = a->x * b->x;
     vec->y = a->y * b->y;
     vec->z = a->z * b->z;
+
+    return vec;
+}
+
+vector vector_mul_d(vector a, double b)
+{
+    vector vec = vector_create();
+
+    vec->x = a->x * b;
+    vec->y = a->y * b;
+    vec->z = a->z * b;
 
     return vec;
 }
@@ -355,8 +387,8 @@ void orbital_elements_init_from_vector(
     vector nodeVector = vector_cross(zed, angularVelocity);
 
     //calculate eccentricity
-    vector eccentricityVector = vector_cross(vel, angularVelocity) / sgp;
-    eccentricityVector = eccentricityVector - (state_vecs.position / vector_length(state_vecs.position));
+    vector eccentricityVector = vector_div_d(vector_cross(vel, angularVelocity),  sgp);
+    eccentricityVector = eccentricityVector - vector_div_d(state_vecs.position , vector_length(state_vecs.position));
     e = vector_length(eccentricityVector);
 
     double specificOrbitalEnergy = pow(vector_length(vel),2) * vector_length(vel) * 0.5 - sgp / vector_length(pos);
