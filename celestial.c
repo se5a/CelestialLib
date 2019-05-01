@@ -445,13 +445,12 @@ void orbital_elements_init_from_vector(
             aoP = M_PI * 2 - aoP;
     }
 
-    //calculate MeanAnomaly:
-    double eccAng = vector_dot(eccentricityVector, pos);
-    eccAng = a / eccAng;
-    eccAng = fmin(eccAng, 1);
-    eccAng = fmax(eccAng, -1);
-    E = acos(eccAng);
-    M0 = E - e * sin(E);
+    //calculate EccentricAnomaly
+    double x = (pos->x * cos(-aoP)) - (pos->y * sin(-aoP));
+    x = linierEccentricity + x;
+    E = acos(x / a);
+    //calculate MeanAnomaly at epoch
+    M0 = e - e * sin(E);
 
     elem->semi_major_axis_km = a;
     elem->eccentricity = e;
@@ -461,7 +460,7 @@ void orbital_elements_init_from_vector(
     elem->argument_of_periapsis_rad = aoP;
     elem->inclination_rad = i;
     elem->mean_anomaly_rad = M0;
-    elem->epoch = pow((pow(a, 3) / sgp), 0.5) * M0;
+    elem->epoch = 0;
 }
 
 state_vectors orbital_elements_get_state_vectors(struct orbital_elements_t elem, struct state_vectors_t *state, double secondsSinceLastCalc)
